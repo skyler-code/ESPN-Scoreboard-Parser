@@ -13,7 +13,9 @@ def getData(url):
     opener.addheaders.append(('Cookie', COOKIE_STR))
     response = opener.open(url)
     data = response.read()
-    return data.decode('utf-8')
+    text = data.decode('utf-8')
+    soup = BeautifulSoup( text, features='html.parser' )
+    return soup
 
 class fetch:
     def fetchScoreboard(TEAM_ID, WEEK_ID, SEASON_ID):
