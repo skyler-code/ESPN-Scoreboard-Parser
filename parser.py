@@ -14,7 +14,10 @@ def getScheduleInfo():
         for header in h1List:
                 text = header.text
                 if 'Schedule' in text:
-                        schedule['leagueName'] = text.replace(' Schedule', '')
+                        leagueName = text.replace(' Schedule', '')
+                        schedule['leagueName'] = leagueName
+                        print( "Beginning parse of %s's %s season..." % (leagueName, SEASON_ID) )
+                        break
         rows = scheduleSoup.find_all('a', href=True)
         for r in rows:
                 if 'boxscorequick' in r['href']:
