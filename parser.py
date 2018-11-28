@@ -48,21 +48,30 @@ def getScoreInfo( scoreSoup ):
         currentIndex += 1
     return d
 
-scheduleInfo = getScheduleInfo()
-leagueResults = dict()
-for week in scheduleInfo['weeks']:
-        print('Parsing week %s...' % (week), end='', flush=True)
-        leagueResults[week] = []
-        for teamId in scheduleInfo['weeks'][week]:
-                scoreboardText = fetch.fetchScoreboard(teamId, week, SEASON_ID)
-                scoreInfo = getScoreInfo(scoreboardText)
-                leagueResults[week].append(scoreInfo)
+def parseLeagueResults( weeks ):
+        leagueResults = dict()
+        for week in weeks:
+                print('Parsing week %s...' % (week), end='', flush=True)
+                leagueResults[week] = []
+                for teamId in weeks[week]:
+                        scoreboardText = fetch.fetchScoreboard(teamId, week, SEASON_ID)
+                        scoreInfo = getScoreInfo(scoreboardText)
+                        leagueResults[week].append(scoreInfo)
+                print('DONE')
+        return leagueResults
+
+def printResults( leagueName, leagueResults ):
+        resultDirectory = 'results'
+        outputFileName = ('%s/%s-%s.txt' % (resultDirectory, leagueName.replace(' ', '-'), SEASON_ID))
+        print('Printing to %s...' % (outputFileName), end='', flush=True)
+        if not path.exists(resultDirectory):
+                makedirs(resultDirectory)
+        print(leagueResults, file=open(outputFileName, 'w'))
         print('DONE')
 
-resultDirectory = 'results'
-outputFileName = ('%s/%s-%s.txt' % (resultDirectory, scheduleInfo['leagueName'].replace(' ', '-'), SEASON_ID))
-print('Printing to %s...' % (outputFileName), end='', flush=True)
-if not path.exists(resultDirectory):
-        makedirs(resultDirectory)
-print(leagueResults, file=open(outputFileName, 'w'))
-print('DONE')
+def main():
+        scheduleInfo = getScheduleInfo()
+        leagueResults = parseLeagueResults(scheduleInfo['weeks'])
+        printResults(scheduleInfo['leagueName'], leagueResults)
+
+main()
