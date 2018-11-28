@@ -8,14 +8,13 @@ SEASON_ID = datetime.now().year
 
 def getScheduleInfo():
         schedule = dict()
-        schedule['weeks'] = dict()
         scheduleSoup = fetch.fetchSchedule(SEASON_ID)
+        leagueName = ''
         h1List = scheduleSoup.find_all('h1')
         for header in h1List:
                 text = header.text
                 if 'Schedule' in text:
                         leagueName = text.replace(' Schedule', '')
-                        schedule['leagueName'] = leagueName
                         print( "Beginning parse of %s's %s season..." % (leagueName, SEASON_ID) )
                         break
         rows = scheduleSoup.find_all('a', href=True)
@@ -30,11 +29,11 @@ def getScheduleInfo():
                                 elif 'scoringPeriodId' in val:
                                         scoringPeriodId = val.replace('scoringPeriodId=', '')
                                         break
-                        if scoringPeriodId in schedule['weeks']:
-                                schedule['weeks'][scoringPeriodId].append(teamId)
+                        if scoringPeriodId in schedule:
+                                schedule[scoringPeriodId].append(teamId)
                         else:
-                                schedule['weeks'][scoringPeriodId] = [teamId]
-        return schedule
+                                schedule[scoringPeriodId] = [teamId]
+        return schedule, leagueName
 
 def getScoreInfo( scoreSoup ):
     d = dict()
@@ -73,8 +72,8 @@ def printResults( leagueName, leagueResults ):
         print('DONE')
 
 def main():
-        scheduleInfo = getScheduleInfo()
-        leagueResults = parseLeagueResults(scheduleInfo['weeks'])
-        printResults(scheduleInfo['leagueName'], leagueResults)
+        scheduleInfo, leagueName = getScheduleInfo()
+        leagueResults = parseLeagueResults(scheduleInfo)
+        printResults(leagueName, leagueResults)
 
 main()
