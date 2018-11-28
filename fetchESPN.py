@@ -1,6 +1,6 @@
+from dotenv import load_dotenv
 from urllib.request import build_opener
 from os import getenv
-from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 
 load_dotenv()
