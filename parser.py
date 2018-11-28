@@ -58,7 +58,6 @@ for week in scheduleInfo['weeks']:
                 scoreInfo = getScoreInfo(scoreboardText)
                 leagueResults[week].append(scoreInfo)
         print('DONE')
-        break
 
 resultDirectory = 'results'
 outputFileName = ('%s/%s-%s.txt' % (resultDirectory, scheduleInfo['leagueName'].replace(' ', '-'), SEASON_ID))
