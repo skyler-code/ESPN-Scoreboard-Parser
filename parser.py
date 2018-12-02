@@ -44,9 +44,11 @@ def getScoreInfo( scoreSoup ):
     for team in teamNames:
         teamName = team.text.replace(' Box Score', '')
         d[teamName] = dict()
-        d[teamName]['actualPoints'] = totalScores[currentIndex]['title']
-        d[teamName]['benchPoints'] = benchScores[currentIndex].text if len(benchScores) > 0 else 0
-        d[teamName]['totalPoints'] = str(Decimal(d[teamName]['actualPoints']) + Decimal(d[teamName]['benchPoints']))
+        actualPoints = Decimal(totalScores[currentIndex]['title'])
+        benchPoints = Decimal(benchScores[currentIndex].text if len(benchScores) > 0 else 0)
+        d[teamName]['actualPoints'] = float(actualPoints)
+        d[teamName]['benchPoints'] = float(benchPoints)
+        d[teamName]['totalPoints'] = float(actualPoints + benchPoints)
         currentIndex += 1
     return d
 
