@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from os import makedirs, path
 from pydash import replace_end
+import urllib.parse as urlparse
 
 from fetchESPN import fetch
 
@@ -16,15 +17,9 @@ def getScheduleInfo():
     rows = scheduleSoup.find_all('a', href=True)
     for r in rows:
         if 'boxscorequick' in r['href']:
-            teamId = ''
-            scoringPeriodId = ''
-            vals = r['href'].split('&')
-            for val in vals:
-                if 'teamId' in val:
-                    teamId = val.replace('teamId=', '')
-                elif 'scoringPeriodId' in val:
-                    scoringPeriodId = val.replace('scoringPeriodId=', '')
-                    break
+            query_def = urlparse.parse_qs(urlparse.urlparse(r['href']).query)
+            teamId = query_def['teamId'][0]
+            scoringPeriodId = query_def['scoringPeriodId'][0]
             if scoringPeriodId in schedule:
                 schedule[scoringPeriodId].append(teamId)
             else:
