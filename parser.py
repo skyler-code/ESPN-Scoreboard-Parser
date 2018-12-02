@@ -1,12 +1,17 @@
+import urllib.parse as urlparse
 from datetime import datetime
 from decimal import Decimal
 from os import makedirs, path
+
 from pydash import replace_end
-import urllib.parse as urlparse
 
 from fetchESPN import fetch
 
 SEASON_ID = datetime.now().year
+
+def parseQueryString( queryStr:str ):
+    return urlparse.parse_qs(urlparse.urlparse(queryStr).query)
+
 
 def getScheduleInfo():
     scheduleSoup = fetch.fetchSchedule(SEASON_ID)
@@ -17,13 +22,12 @@ def getScheduleInfo():
     rows = scheduleSoup.find_all('a', href=True)
     for r in rows:
         if 'boxscorequick' in r['href']:
-            query_def = urlparse.parse_qs(urlparse.urlparse(r['href']).query)
+            query_def = parseQueryString(r['href'])
             teamId = query_def['teamId'][0]
             scoringPeriodId = query_def['scoringPeriodId'][0]
-            if scoringPeriodId in schedule:
-                schedule[scoringPeriodId].append(teamId)
-            else:
-                schedule[scoringPeriodId] = [teamId]
+            if scoringPeriodId not in schedule:
+                schedule[scoringPeriodId] = []
+            schedule[scoringPeriodId].append(teamId)
     return schedule, leagueName
 
 def getScoreInfo( scoreSoup ):
@@ -31,19 +35,20 @@ def getScoreInfo( scoreSoup ):
     currentIndex = 0
     totalScores = scoreSoup.find_all('div', class_='totalScore')
     benchScores = scoreSoup.select('div[id*="tmInactivePts"]')
-    teamNames = scoreSoup.find_all('tr', class_='playertableTableHeader')
+    teamNames = scoreSoup.find('div', id='teamInfos').find_all('a')
     for team in teamNames:
-        teamName = team.text.replace(' Box Score', '')
-        d[teamName] = dict()
+        query_def = parseQueryString(team['href'])
+        teamId = query_def['teamId'][0]
+        d[teamId] = dict()
         actualPoints = Decimal(totalScores[currentIndex]['title'])
         benchPoints = Decimal(benchScores[currentIndex].text if len(benchScores) > 0 else 0)
-        d[teamName]['actualPoints'] = float(actualPoints)
-        d[teamName]['benchPoints'] = float(benchPoints)
-        d[teamName]['totalPoints'] = float(actualPoints + benchPoints)
+        d[teamId]['actual'] = float(actualPoints)
+        d[teamId]['bench'] = float(benchPoints)
+        d[teamId]['total'] = float(actualPoints + benchPoints)
         currentIndex += 1
     return d
 
-def parseLeagueResults( weeks ):
+def parseLeagueResults( weeks:dict ):
     leagueResults = dict()
     for week in weeks:
         print('Parsing week %s...' % (week), end='', flush=True)
@@ -55,7 +60,7 @@ def parseLeagueResults( weeks ):
         print('DONE')
     return leagueResults
 
-def printResults( leagueName, leagueResults ):
+def printResults( leagueName:str, leagueResults:dict ):
     resultDirectory = 'results'
     outputFileName = ('%s/%s-%s.txt' % (resultDirectory, leagueName.replace(' ', '-'), SEASON_ID))
     print('Printing to %s...' % (outputFileName), end='', flush=True)
