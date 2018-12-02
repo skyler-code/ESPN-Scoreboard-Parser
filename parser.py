@@ -1,22 +1,18 @@
 from datetime import datetime
 from decimal import Decimal
 from os import makedirs, path
+from pydash import replace_end
 
 from fetchESPN import fetch
 
 SEASON_ID = datetime.now().year
 
 def getScheduleInfo():
-    schedule = dict()
     scheduleSoup = fetch.fetchSchedule(SEASON_ID)
-    leagueName = ''
-    h1List = scheduleSoup.find_all('h1')
-    for header in h1List:
-        text = header.text
-        if 'Schedule' in text:
-            leagueName = text.replace(' Schedule', '')
-            print( "Beginning parse of %s's %s season..." % (leagueName, SEASON_ID) )
-            break
+    leagueName = replace_end(scheduleSoup.title.text,' Schedule -  ESPN', '')
+    print( "Beginning parse of %s's %s season..." % (leagueName, SEASON_ID) )
+
+    schedule = dict()
     rows = scheduleSoup.find_all('a', href=True)
     for r in rows:
         if 'boxscorequick' in r['href']:
