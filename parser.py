@@ -12,23 +12,29 @@ SEASON_ID = datetime.now().year
 def parseQueryString( queryStr:str ):
     return urlparse.parse_qs(urlparse.urlparse(queryStr).query)
 
-
-def getScheduleInfo():
+def getLeagueInfo():
     scheduleSoup = fetch.fetchSchedule(SEASON_ID)
     leagueName = replace_end(scheduleSoup.title.text,' Schedule -  ESPN', '')
     print( "Beginning parse of %s's %s season..." % (leagueName, SEASON_ID) )
 
     schedule = dict()
-    rows = scheduleSoup.find_all('a', href=True)
-    for r in rows:
-        if 'boxscorequick' in r['href']:
-            query_def = parseQueryString(r['href'])
+    teamInfo = dict()
+    links = scheduleSoup.find('table', class_='tableBody').find_all('a', href=True)
+    for a in links:
+        url = a['href']
+        if 'boxscorequick' in url:
+            query_def = parseQueryString(url)
             teamId = query_def['teamId'][0]
             scoringPeriodId = query_def['scoringPeriodId'][0]
             if scoringPeriodId not in schedule:
                 schedule[scoringPeriodId] = []
             schedule[scoringPeriodId].append(teamId)
-    return schedule, leagueName
+        elif 'clubhouse' in url:
+            query_def = parseQueryString(url)
+            teamId = query_def['teamId'][0]
+            if teamId not in teamInfo:
+                teamInfo[teamId] = a.text
+    return schedule, leagueName, teamInfo
 
 def getScoreInfo( scoreSoup ):
     d = dict()
@@ -37,8 +43,7 @@ def getScoreInfo( scoreSoup ):
     benchScores = scoreSoup.select('div[id*="tmInactivePts"]')
     teamNames = scoreSoup.find('div', id='teamInfos').find_all('a')
     for team in teamNames:
-        query_def = parseQueryString(team['href'])
-        teamId = query_def['teamId'][0]
+        teamId = parseQueryString(team['href'])['teamId'][0]
         d[teamId] = dict()
         actualPoints = Decimal(totalScores[currentIndex]['title'])
         benchPoints = Decimal(benchScores[currentIndex].text if len(benchScores) > 0 else 0)
@@ -58,6 +63,7 @@ def parseLeagueResults( weeks:dict ):
             scoreInfo = getScoreInfo(scoreboardText)
             leagueResults[week].append(scoreInfo)
         print('DONE')
+        break
     return leagueResults
 
 def printResults( leagueName:str, leagueResults:dict ):
@@ -70,7 +76,7 @@ def printResults( leagueName:str, leagueResults:dict ):
     print('DONE')
 
 def main():
-    scheduleInfo, leagueName = getScheduleInfo()
+    scheduleInfo, leagueName, teamInfo = getLeagueInfo()
     leagueResults = parseLeagueResults(scheduleInfo)
     printResults(leagueName, leagueResults)
 
