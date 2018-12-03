@@ -1,24 +1,27 @@
 import urllib.parse as urlparse
 from datetime import datetime
 from decimal import Decimal
-from os import makedirs, path
+from os import getenv, makedirs, path
 
+from dotenv import load_dotenv
 from pydash import replace_end
 
 from fetchESPN import fetch
+from printSpreadsheet import printSpreadsheet
 
-SEASON_ID = datetime.now().year
+load_dotenv()
+SEASON_ID = getenv("SEASON_ID")
+fetchESPN = fetch()
 
 def parseQueryString( queryStr:str ):
     return urlparse.parse_qs(urlparse.urlparse(queryStr).query)
 
 def getLeagueInfo():
-    scheduleSoup = fetch.fetchSchedule(SEASON_ID)
+    scheduleSoup = fetchESPN.fetchSchedule()
     leagueName = replace_end(scheduleSoup.title.text,' Schedule -  ESPN', '')
     print( "Beginning parse of %s's %s season..." % (leagueName, SEASON_ID) )
 
-    schedule = dict()
-    teamInfo = dict()
+    teamInfo, schedule = dict(), dict()
     links = scheduleSoup.find('table', class_='tableBody').find_all('a', href=True)
     for a in links:
         url = a['href']
@@ -45,11 +48,11 @@ def getScoreInfo( scoreSoup ):
     for team in teamNames:
         teamId = parseQueryString(team['href'])['teamId'][0]
         d[teamId] = dict()
-        actualPoints = Decimal(totalScores[currentIndex]['title'])
+        starterPoints = Decimal(totalScores[currentIndex]['title'])
         benchPoints = Decimal(benchScores[currentIndex].text if len(benchScores) > 0 else 0)
-        d[teamId]['actual'] = float(actualPoints)
+        d[teamId]['starter'] = float(starterPoints)
         d[teamId]['bench'] = float(benchPoints)
-        d[teamId]['total'] = float(actualPoints + benchPoints)
+        d[teamId]['total'] = float(starterPoints + benchPoints)
         currentIndex += 1
     return d
 
@@ -59,25 +62,17 @@ def parseLeagueResults( weeks:dict ):
         print('Parsing week %s...' % (week), end='', flush=True)
         leagueResults[week] = []
         for teamId in weeks[week]:
-            scoreboardText = fetch.fetchScoreboard(teamId, week, SEASON_ID)
+            scoreboardText = fetchESPN.fetchScoreboard(teamId, week)
             scoreInfo = getScoreInfo(scoreboardText)
             leagueResults[week].append(scoreInfo)
         print('DONE')
         break
     return leagueResults
 
-def printResults( leagueName:str, leagueResults:dict ):
-    resultDirectory = 'results'
-    outputFileName = ('%s/%s-%s.txt' % (resultDirectory, leagueName.replace(' ', '-'), SEASON_ID))
-    print('Printing to %s...' % (outputFileName), end='', flush=True)
-    if not path.exists(resultDirectory):
-        makedirs(resultDirectory)
-    print(leagueResults, file=open(outputFileName, 'w'))
-    print('DONE')
-
 def main():
     scheduleInfo, leagueName, teamInfo = getLeagueInfo()
     leagueResults = parseLeagueResults(scheduleInfo)
-    printResults(leagueName, leagueResults)
+    spreadsheet = printSpreadsheet(teamInfo, leagueName, leagueResults, scheduleInfo)
+    spreadsheet.printSpreadsheet()
 
 main()
