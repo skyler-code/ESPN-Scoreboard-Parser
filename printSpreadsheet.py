@@ -23,27 +23,31 @@ class printSpreadsheet:
         self.outputFileName = ('%s/%s-%s.xlsx' % (RESULT_DIRECTORY, leagueName.replace(' ', '-'), SEASON_ID))
         self.workbook = xlsx.Workbook(self.outputFileName)
         self.centerAlign = self.workbook.add_format({'align': 'center'})
+        self.centerAlignBold = self.workbook.add_format({'align': 'center', 'bold': True})
         self.centerAlignedNumber = self.workbook.add_format({'align': 'center', 'num_format': '0.00'})
 
     def getTeamStats(self, teamId:str, sheetName:str ):
         scores = [self.teamInfo[teamId]]
         for week in self.leagueResults.values():
+            gameFound = False
             for game in week:
                 if teamId in game:
                     scores.append(game[teamId][sheetName])
-                    break
+                    gameFound = True
+            if gameFound == False:
+                scores.append(0)
         return scores
 
     def printSheet(self, sheetName:str):
         worksheet = self.workbook.add_worksheet('%s Points' % (sheetName.capitalize()))
         
-        worksheet.write(0, 0, 'Team', self.centerAlign)
+        worksheet.write(0, 0, 'Team', self.centerAlignBold)
         colIndex = 1
-        for week in self.schedule:
-            worksheet.write(0, colIndex, 'Week ' + week, self.centerAlign)
-            colIndex += 1
-        worksheet.write(0, colIndex, 'Total', self.centerAlign)
         rowIndex = 1
+        for week in self.schedule:
+            worksheet.write(0, colIndex, 'Week ' + week, self.centerAlignBold)
+            colIndex += 1
+        worksheet.write(0, colIndex, 'Total', self.centerAlignBold)
         for teamId in self.teamInfo.keys():
             teamStats = self.getTeamStats(teamId, sheetName)
             worksheet.write(rowIndex, 0, shift(teamStats), self.centerAlign)
@@ -57,6 +61,13 @@ class printSpreadsheet:
             formula = '=SUM(%s)' % cellRange
             worksheet.write_formula(rowIndex, colIndex, formula, self.centerAlignedNumber)
             rowIndex += 1
+        worksheet.write(rowIndex, 0, 'Totals', self.centerAlignBold)
+        for i in range(1, colIndex+1):
+            cellRange = xlsx.utility.xl_range(1, i, rowIndex - 1, i)
+            formula = '=SUM(%s)' % cellRange
+            worksheet.write_formula(rowIndex, i, formula, self.centerAlignedNumber)
+
+
 
     def autoFitSpreadsheet(self):
         excel = win32.gencache.EnsureDispatch('Excel.Application')
