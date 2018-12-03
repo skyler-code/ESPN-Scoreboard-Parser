@@ -4,7 +4,7 @@ import xlsxwriter as xlsx
 from dotenv import load_dotenv
 
 load_dotenv()
-SEASON_ID = getenv("SEASON_ID")
+SEASON_ID = getenv('SEASON_ID')
 RESULT_DIRECTORY = 'results'
 
 

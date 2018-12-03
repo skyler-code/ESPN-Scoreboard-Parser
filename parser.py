@@ -1,7 +1,7 @@
 import urllib.parse as urlparse
 from datetime import datetime
 from decimal import Decimal
-from os import getenv, makedirs, path
+from os import getenv
 
 from dotenv import load_dotenv
 from pydash import replace_end
@@ -66,7 +66,6 @@ def parseLeagueResults( weeks:dict ):
             scoreInfo = getScoreInfo(scoreboardText)
             leagueResults[week].append(scoreInfo)
         print('DONE')
-        break
     return leagueResults
 
 def main():
