@@ -12,6 +12,7 @@ from printSpreadsheet import printSpreadsheet
 
 load_dotenv()
 SEASON_ID = getenv("SEASON_ID")
+PARSE_PLAYOFFS = getenv("PARSE_PLAYOFFS").lower() == 'true'
 fetchESPN = fetch()
 
 def parseQueryString( queryStr:str ):
@@ -22,7 +23,14 @@ def getLeagueInfo():
     leagueName = replace_end(scheduleSoup.title.text,' Schedule -  ESPN', '')
     print( "Beginning parse of %s's %s season..." % (leagueName, SEASON_ID) )
 
-    teamInfo, schedule = dict(), OrderedDict()
+    regSeasonWeeks = 0
+    leagueSettingsTable = scheduleSoup.find('table', class_='leagueSettingsTable').find_all('td')
+    for td in leagueSettingsTable:
+        if 'Playoffs start' in td.text:
+            regSeasonWeeks = int(td.text.split(' ')[0])
+            break
+
+    teamInfo, schedule = {}, OrderedDict()
     links = scheduleSoup.find('table', class_='tableBody').find_all('a', href=True)
     for a in links:
         url = a['href']
@@ -30,6 +38,8 @@ def getLeagueInfo():
             query_def = parseQueryString(url)
             teamId = query_def['teamId'][0]
             scoringPeriodId = query_def['scoringPeriodId'][0]
+            if int(scoringPeriodId) > regSeasonWeeks and not PARSE_PLAYOFFS:
+                break
             if scoringPeriodId not in schedule:
                 schedule[scoringPeriodId] = []
             schedule[scoringPeriodId].append(teamId)
@@ -38,17 +48,18 @@ def getLeagueInfo():
             teamId = query_def['teamId'][0]
             if teamId not in teamInfo:
                 teamInfo[teamId] = a['title']
+    
     return schedule, leagueName, teamInfo
 
 def getScoreInfo( scoreSoup ):
-    d = dict()
+    d = {}
     currentIndex = 0
     totalScores = scoreSoup.find_all('div', class_='totalScore')
     benchScores = scoreSoup.select('div[id*="tmInactivePts"]')
     teamNames = scoreSoup.find('div', id='teamInfos').find_all('a')
     for team in teamNames:
         teamId = parseQueryString(team['href'])['teamId'][0]
-        d[teamId] = dict()
+        d[teamId] = {}
         starterPoints = Decimal(totalScores[currentIndex]['title'])
         benchPoints = Decimal(benchScores[currentIndex].text if len(benchScores) > 0 else 0)
         d[teamId]['starter'] = starterPoints
